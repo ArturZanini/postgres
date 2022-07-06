@@ -1,0 +1,15 @@
+/*
+   Essa função retorna o cruzamento mais próximo de um determinado ponto (aqui POINT (lon lat ) )
+   Eu apliquei um buffer de 50 metros a partir do ponto para agilizar a query
+   Perceba que usei ST_Transform para poder utilizar um sistema de coordenadas em metros já que o meu campo está em wgs_84 (graus). Se o seu campo estiver em UTM , esse passo é desnecessário
+*/
+
+select e1.nome As nome_eixo1,  e2.nome As nome_eixo2, ST_Intersection( e1.the_geom,e2.the_geom) as interseccao_geom,ST_Distance(ST_transform(ST_Intersection( e1.the_geom,e2.the_geom),29101),
+ST_Transform(ST_GeomfromText('POINT(-49.06336028 -26.91507471)',4326),29101)) as distancia_interseccao
+from ( select gid,nome,the_geom from eixos 
+	   where ST_Intersects( ST_transform(the_geom,29101), 
+                            ST_Buffer( ST_Transform(ST_GeomfromText('POINT(lon lat)',4326),29101),50)) ) As e1 
+			 INNER JOIN eixos As e2 ON( ST_Intersects(e1.the_geom, e2.the_geom) AND e1.gid <> e2.gid)
+where not (e1.nome = e2.nome)
+order by distancia_interseccao 
+limit 1
